@@ -39,10 +39,10 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlin_serialization_version"
     implementation "com.eclipsesource.j2v8:j2v8:$j2v8_version"
 
-    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlin_serialization_version"
     androidTestImplementation "io.kotlintest:kotlintest-runner-junit4:$kotlin_test_runner_version"
     androidTestImplementation "com.google.truth:truth:$google_truth_version"
     androidTestImplementation "androidx.test.ext:junit:$androidx_test_version"
