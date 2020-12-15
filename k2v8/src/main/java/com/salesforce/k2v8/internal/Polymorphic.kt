@@ -4,15 +4,16 @@ import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.V8Value
 import com.salesforce.k2v8.V8ObjectDecoder
 import com.salesforce.k2v8.V8ObjectEncoder
-import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.PolymorphicKind
-import kotlinx.serialization.PrimitiveKind
-import kotlinx.serialization.SealedClassSerializer
-import kotlinx.serialization.SerialKind
+import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.UnionKind
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.findPolymorphicSerializer
+import kotlinx.serialization.descriptors.PolymorphicKind
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialKind
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.internal.AbstractPolymorphicSerializer
 
 /**
@@ -25,9 +26,9 @@ internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: Serial
         serializer.serialize(this, value)
         return
     }
-    serializer as AbstractPolymorphicSerializer<Any> // PolymorphicSerializer <*> projects 2nd argument of findPolymorphic... to Nothing, so we need an additional cast
-    val actualSerializer = serializer.findPolymorphicSerializer(this, value as Any).cast<Any>()
-    validateIfSealed(serializer, actualSerializer, k2V8.configuration.classDiscriminator)
+    serializer as PolymorphicSerializer<Any> // PolymorphicSerializer <*> projects 2nd argument of findPolymorphic... to Nothing, so we need an additional cast
+    val actualSerializer = serializer.findPolymorphicSerializerOrNull(this, value as Any) as SerializationStrategy<Any>
+    validateIfSealed(serializer, actualSerializer as KSerializer<Any>, k2V8.configuration.classDiscriminator)
     val kind = actualSerializer.descriptor.kind
     checkKind(kind)
     ifPolymorphic()
@@ -39,11 +40,11 @@ internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: Serial
  */
 @InternalSerializationApi
 private fun validateIfSealed(
-    serializer: KSerializer<*>,
-    actualSerializer: KSerializer<Any>,
-    classDiscriminator: String
+        serializer: KSerializer<*>,
+        actualSerializer: KSerializer<Any>,
+        classDiscriminator: String
 ) {
-    if (serializer !is SealedClassSerializer<*>) return
+    if (serializer !is PolymorphicSerializer<*>) return
     if (classDiscriminator in actualSerializer.descriptor.cachedSerialNames()) {
         val baseName = serializer.descriptor.serialName
         val actualName = actualSerializer.descriptor.serialName
@@ -59,7 +60,7 @@ private fun validateIfSealed(
  * Adapted from [kotlinx.serialization.json.internal.checkKind]
  */
 internal fun checkKind(kind: SerialKind) {
-    if (kind is UnionKind.ENUM_KIND) error("Enums cannot be serialized polymorphically with 'type' parameter.")
+    if (kind is PolymorphicKind.SEALED) error("Sealed kind cannot be serialized polymorphically with 'type' parameter.")
     if (kind is PrimitiveKind) error("Primitives cannot be serialized polymorphically with 'type' parameter.")
     if (kind is PolymorphicKind) error("Actual serializer for polymorphic cannot be polymorphic itself")
 }
@@ -102,7 +103,7 @@ internal fun <T> V8ObjectDecoder.decodeSerializableValuePolymorphic(deserializer
         }
 
         // find the actual serializer for the type
-        val actualSerializer = deserializer.findPolymorphicSerializer(this, type).cast<T>()
+        val actualSerializer = deserializer.findPolymorphicSerializer(this, type) as DeserializationStrategy<T>
 
         // return deserialized object
         k2V8.fromV8(actualSerializer, copied)
