@@ -26,13 +26,15 @@ internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: Serial
         serializer.serialize(this, value)
         return
     }
-    serializer as PolymorphicSerializer<Any> // PolymorphicSerializer <*> projects 2nd argument of findPolymorphic... to Nothing, so we need an additional cast
+    serializer as AbstractPolymorphicSerializer<Any> // PolymorphicSerializer <*> projects 2nd argument of findPolymorphic... to Nothing, so we need an additional cast
     val actualSerializer = serializer.findPolymorphicSerializerOrNull(this, value as Any) as SerializationStrategy<Any>
-    validateIfSealed(serializer, actualSerializer as KSerializer<Any>, k2V8.configuration.classDiscriminator)
-    val kind = actualSerializer.descriptor.kind
-    checkKind(kind)
-    ifPolymorphic()
-    actualSerializer.serialize(this, value)
+    actualSerializer?.let {
+        validateIfSealed(serializer, it as KSerializer<Any>, k2V8.configuration.classDiscriminator)
+        val kind = actualSerializer.descriptor.kind
+        checkKind(kind)
+        ifPolymorphic()
+        actualSerializer.serialize(this, value)
+    }
 }
 
 /**
@@ -60,7 +62,7 @@ private fun validateIfSealed(
  * Adapted from [kotlinx.serialization.json.internal.checkKind]
  */
 internal fun checkKind(kind: SerialKind) {
-    if (kind is PolymorphicKind.SEALED) error("Sealed kind cannot be serialized polymorphically with 'type' parameter.")
+    if (kind is SerialKind.ENUM) error("Enums cannot be serialized polymorphically with 'type' parameter.")
     if (kind is PrimitiveKind) error("Primitives cannot be serialized polymorphically with 'type' parameter.")
     if (kind is PolymorphicKind) error("Actual serializer for polymorphic cannot be polymorphic itself")
 }

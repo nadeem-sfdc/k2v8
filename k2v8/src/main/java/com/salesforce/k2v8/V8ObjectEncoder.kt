@@ -13,13 +13,8 @@ import com.salesforce.k2v8.internal.encodePolymorphically
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.descriptors.PolymorphicKind
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.StructureKind
-import kotlinx.serialization.modules.EmptySerializersModule
+import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.modules.SerializersModule
 import java.util.Stack
 
@@ -33,7 +28,7 @@ internal fun <T> K2V8.convertToV8Object(value: T, serializer: SerializationStrat
 
 class V8ObjectEncoder(
     internal val k2V8: K2V8,
-    val context: SerializersModule = k2V8.serializersModule,
+    override val serializersModule: SerializersModule = k2V8.serializersModule,
     private val consumer: (V8Object) -> Unit
 ) : Encoder, CompositeEncoder {
 
@@ -133,13 +128,6 @@ class V8ObjectEncoder(
         currentNode.encodeValue(value)
     }
 
-    /**
-     * Context of the current serialization process, including contextual and polymorphic serialization and,
-     * potentially, a format-specific configuration.
-     */
-    override val serializersModule: SerializersModule
-        get() = EmptySerializersModule
-
     override fun encodeBooleanElement(descriptor: SerialDescriptor, index: Int, value: Boolean) {
         currentNode.encodeNamedValue(descriptor.getElementName(index), value)
     }
@@ -200,7 +188,7 @@ class V8ObjectEncoder(
 
     @InternalSerializationApi
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-        if (serializer.descriptor.kind !is PrimitiveKind && serializer.descriptor.kind !== PolymorphicKind.SEALED) {
+        if (serializer.descriptor.kind !is PrimitiveKind && serializer.descriptor.kind !== SerialKind.ENUM) {
             encodePolymorphically(serializer, value) { writePolymorphic = true }
         } else {
             super.encodeSerializableValue(serializer, value)

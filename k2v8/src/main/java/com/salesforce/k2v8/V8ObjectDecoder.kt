@@ -13,11 +13,12 @@ import com.salesforce.k2v8.internal.decodeSerializableValuePolymorphic
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.UpdateMode
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
-import kotlinx.serialization.*
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import java.util.Stack
@@ -31,7 +32,7 @@ internal fun <T> K2V8.convertFromV8Object(
     return V8ObjectDecoder(this, value).decodeSerializableValue(deserializer)
 }
 
-    class V8ObjectDecoder(internal val k2V8: K2V8, private val k2V8Object: V8Object,
+    class V8ObjectDecoder(internal val k2V8: K2V8, private val value: V8Object,
                           override val serializersModule: SerializersModule = EmptySerializersModule) : Decoder, CompositeDecoder {
 
         override val updateMode: UpdateMode = UpdateMode.OVERWRITE
@@ -40,7 +41,7 @@ internal fun <T> K2V8.convertFromV8Object(
         internal val currentNode: InputNode
             get() = nodes.peek()
 
-        internal fun currentObject() = if (nodes.isNotEmpty()) currentNode.v8Object else k2V8Object
+        internal fun currentObject() = if (nodes.isNotEmpty()) currentNode.v8Object else value
 
         override fun beginStructure(
                 descriptor: SerialDescriptor
@@ -50,16 +51,16 @@ internal fun <T> K2V8.convertFromV8Object(
                 is StructureKind.CLASS, is PolymorphicKind -> {
                     InputNode.ObjectInputNode(
                             descriptor,
-                            if (key == null) k2V8Object else currentNode.v8Object.getObject(key)
+                            if (key == null) value else currentNode.v8Object.getObject(key)
                     )
                 }
                 is StructureKind.LIST -> {
-                    val v8Array = (if (key == null) k2V8Object else currentNode.v8Object.get(key)) as V8Array
+                    val v8Array = (if (key == null) value else currentNode.v8Object.get(key)) as V8Array
                     InputNode.ListInputNode(v8Array)
                 }
                 StructureKind.MAP -> {
                     val v8Object =
-                            (if (key == null) k2V8Object else currentNode.v8Object.get(key)) as V8Object
+                            (if (key == null) value else currentNode.v8Object.get(key)) as V8Object
                     InputNode.MapInputNode(v8Object)
                 }
                 is StructureKind.OBJECT -> InputNode.UndefinedInputNode(
