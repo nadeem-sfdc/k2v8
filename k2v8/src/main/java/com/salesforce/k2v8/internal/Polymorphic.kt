@@ -10,16 +10,17 @@ import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.findPolymorphicSerializer
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.internal.AbstractPolymorphicSerializer
 
 /**
  * Adapted from [kotlinx.serialization.json.internal.encodePolymorphically]
  */
 @InternalSerializationApi
+@ExperimentalSerializationApi
 @Suppress("UNCHECKED_CAST")
 internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: SerializationStrategy<T>, value: T, ifPolymorphic: () -> Unit) {
     if (serializer !is AbstractPolymorphicSerializer<*>) {
@@ -28,7 +29,7 @@ internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: Serial
     }
     serializer as AbstractPolymorphicSerializer<Any> // PolymorphicSerializer <*> projects 2nd argument of findPolymorphic... to Nothing, so we need an additional cast
     val actualSerializer = serializer.findPolymorphicSerializerOrNull(this, value as Any) as SerializationStrategy<Any>
-    actualSerializer?.let {
+    actualSerializer.let {
         validateIfSealed(serializer, it as KSerializer<Any>, k2V8.configuration.classDiscriminator)
         val kind = actualSerializer.descriptor.kind
         checkKind(kind)
@@ -40,6 +41,7 @@ internal inline fun <T> V8ObjectEncoder.encodePolymorphically(serializer: Serial
 /**
  * Adapted from [kotlinx.serialization.json.internal.validateIfSealed]
  */
+@ExperimentalSerializationApi
 @InternalSerializationApi
 private fun validateIfSealed(
         serializer: KSerializer<*>,
@@ -61,6 +63,7 @@ private fun validateIfSealed(
 /**
  * Adapted from [kotlinx.serialization.json.internal.checkKind]
  */
+@ExperimentalSerializationApi
 internal fun checkKind(kind: SerialKind) {
     if (kind is SerialKind.ENUM) error("Enums cannot be serialized polymorphically with 'type' parameter.")
     if (kind is PrimitiveKind) error("Primitives cannot be serialized polymorphically with 'type' parameter.")
@@ -77,6 +80,8 @@ internal inline fun <T> KSerializer<*>.cast(): KSerializer<T> = this as KSeriali
  * Adapted from [kotlinx.serialization.json.internal.decodeSerializableValuePolymorphic]
  */
 @InternalSerializationApi
+@ExperimentalSerializationApi
+@Suppress("UNCHECKED_CAST")
 internal fun <T> V8ObjectDecoder.decodeSerializableValuePolymorphic(deserializer: DeserializationStrategy<T>): T {
 
     // if this isn't a polymorphic serializer allow it to do it's own deserialization

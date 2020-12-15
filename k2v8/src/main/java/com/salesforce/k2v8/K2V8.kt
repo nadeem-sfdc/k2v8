@@ -12,12 +12,14 @@ import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialFormat
 import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
 /**
  * The main entry point for V8Object serialization.
  */
+@ExperimentalSerializationApi
 class K2V8(val configuration: Configuration, override val serializersModule: SerializersModule = EmptySerializersModule) : SerialFormat {
 
     /**

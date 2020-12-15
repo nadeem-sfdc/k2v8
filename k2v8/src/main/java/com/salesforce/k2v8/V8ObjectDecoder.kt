@@ -15,7 +15,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.UpdateMode
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -25,6 +24,7 @@ import java.util.Stack
 import kotlin.reflect.KClass
 
 @InternalSerializationApi
+@ExperimentalSerializationApi
 internal fun <T> K2V8.convertFromV8Object(
     value: V8Object,
     deserializer: DeserializationStrategy<T>
@@ -32,10 +32,9 @@ internal fun <T> K2V8.convertFromV8Object(
     return V8ObjectDecoder(this, value).decodeSerializableValue(deserializer)
 }
 
+    @ExperimentalSerializationApi
     class V8ObjectDecoder(internal val k2V8: K2V8, private val value: V8Object,
                           override val serializersModule: SerializersModule = EmptySerializersModule) : Decoder, CompositeDecoder {
-
-        override val updateMode: UpdateMode = UpdateMode.OVERWRITE
 
         private val nodes = Stack<InputNode>()
         internal val currentNode: InputNode
@@ -221,25 +220,6 @@ internal fun <T> K2V8.convertFromV8Object(
             if (nodes.isNotEmpty()) {
                 finishedNode.v8Object.close()
             }
-        }
-
-        override fun <T : Any> updateNullableSerializableElement(
-                descriptor: SerialDescriptor,
-                index: Int,
-                deserializer: DeserializationStrategy<T?>,
-                old: T?
-        ): T? {
-            return decodeNullableSerializableValue(deserializer)
-        }
-
-        @InternalSerializationApi
-        override fun <T> updateSerializableElement(
-                descriptor: SerialDescriptor,
-                index: Int,
-                deserializer: DeserializationStrategy<T>,
-                old: T
-        ): T {
-            return decodeSerializableValue(deserializer)
         }
 
         internal sealed class InputNode(

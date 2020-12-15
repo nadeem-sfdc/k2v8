@@ -10,6 +10,7 @@ package com.salesforce.k2v8
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
 import com.salesforce.k2v8.internal.encodePolymorphically
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.InternalSerializationApi
@@ -23,6 +24,7 @@ import kotlinx.serialization.modules.SerializersModule
 import java.util.Stack
 
 @InternalSerializationApi
+@ExperimentalSerializationApi
 internal fun <T> K2V8.convertToV8Object(value: T, serializer: SerializationStrategy<T>): V8Object {
     lateinit var result: V8Object
     val encoder = V8ObjectEncoder(this) { result = it }
@@ -30,6 +32,7 @@ internal fun <T> K2V8.convertToV8Object(value: T, serializer: SerializationStrat
     return result
 }
 
+@ExperimentalSerializationApi
 class V8ObjectEncoder(
     internal val k2V8: K2V8,
     override val serializersModule: SerializersModule = k2V8.serializersModule,
