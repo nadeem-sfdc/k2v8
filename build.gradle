@@ -14,7 +14,7 @@ buildscript {
         j2v8_version = "6.2.0@aar"
         kotlin_serialization_version = "1.0.1"
         kotlin_test_runner_version = "3.1.5"
-        kotlin_version = "1.4.0"
+        kotlin_version = "1.4.21"
     }
     repositories {
         google()
